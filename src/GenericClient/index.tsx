@@ -25,6 +25,10 @@ class GenericClient implements GenericClientInterface {
         validateRequestOptions(options);
         return NativeGenericClient.get(url, options);
     };
+    poll = (url: string, options?: RequestOptions): Promise<ClientResponse> => {
+        validateRequestOptions(options);
+        return NativeGenericClient.get(url, options);
+    };
     put = (url: string, options?: RequestOptions): Promise<ClientResponse> => {
         validateRequestOptions(options);
         return NativeGenericClient.put(url, options);

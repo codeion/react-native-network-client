@@ -38,6 +38,11 @@ export interface NativeAPIClient extends NativeModule {
         endpoint: string | null,
         options?: RequestOptions
     ): Promise<ClientResponse>;
+    poll(
+        baseUrl: string,
+        endpoint: string | null,
+        options?: RequestOptions
+    ): Promise<ClientResponse>;
     put(
         baseUrl: string,
         endpoint: string | null,

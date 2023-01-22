@@ -111,6 +111,13 @@ class APIClient implements APIClientInterface {
         validateRequestOptions(options);
         return NativeAPIClient.get(this.baseUrl, endpoint, options);
     };
+    poll = (
+        endpoint: string,
+        options?: RequestOptions
+    ): Promise<ClientResponse> => {
+        validateRequestOptions(options);
+        return NativeAPIClient.poll(this.baseUrl, endpoint, options);
+    };
     put = (
         endpoint: string,
         options?: RequestOptions

@@ -58,6 +58,7 @@ export type APIClientErrorEventHandler = (event: APIClientErrorEvent) => void;
 export interface GenericClientInterface {
     head(url: string, options?: RequestOptions): Promise<ClientResponse>;
     get(url: string, options?: RequestOptions): Promise<ClientResponse>;
+    poll(url: string, options?: RequestOptions): Promise<ClientResponse>;
     put(url: string, options?: RequestOptions): Promise<ClientResponse>;
     post(url: string, options?: RequestOptions): Promise<ClientResponse>;
     patch(url: string, options?: RequestOptions): Promise<ClientResponse>;
@@ -73,6 +74,7 @@ export interface APIClientInterface {
 
     head(endpoint: string, options?: RequestOptions): Promise<ClientResponse>;
     get(endpoint: string, options?: RequestOptions): Promise<ClientResponse>;
+    poll(endpoint: string, options?: RequestOptions): Promise<ClientResponse>;
     put(endpoint: string, options?: RequestOptions): Promise<ClientResponse>;
     post(endpoint: string, options?: RequestOptions): Promise<ClientResponse>;
     patch(endpoint: string, options?: RequestOptions): Promise<ClientResponse>;

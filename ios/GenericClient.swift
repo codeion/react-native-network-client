@@ -23,22 +23,27 @@ class GenericClient: NSObject, NetworkClient {
     func get(url: String, options: Dictionary<String, Any>, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) -> Void {
         handleRequest(for: url, withMethod: .get, withSession: session, withOptions: JSON(options), withResolver: resolve, withRejecter: reject)
     }
-    
+
+    @objc(poll:withOptions:withResolver:withRejecter:)
+    func poll(url: String, options: Dictionary<String, Any>, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) -> Void {
+        handleRequest(for: url, withMethod: .get, withSession: session, withOptions: JSON(options), withResolver: resolve, withRejecter: reject)
+    }
+
     @objc(put:withOptions:withResolver:withRejecter:)
     func put(url: String, options: Dictionary<String, Any>, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) -> Void {
         handleRequest(for: url, withMethod: .put, withSession: session, withOptions: JSON(options), withResolver: resolve, withRejecter: reject)
     }
-    
+
     @objc(post:withOptions:withResolver:withRejecter:)
     func post(url: String, options: Dictionary<String, Any>, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) -> Void {
         handleRequest(for: url, withMethod: .post, withSession: session, withOptions: JSON(options), withResolver: resolve, withRejecter: reject)
     }
-    
+
     @objc(patch:withOptions:withResolver:withRejecter:)
     func patch(url: String, options: Dictionary<String, Any>, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) -> Void {
         handleRequest(for: url, withMethod: .patch, withSession: session, withOptions: JSON(options), withResolver: resolve, withRejecter: reject)
     }
-    
+
     @objc(delete:withOptions:withResolver:withRejecter:)
     func delete(url: String, options: Dictionary<String, Any>, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) -> Void {
         handleRequest(for: url, withMethod: .delete, withSession: session, withOptions: JSON(options), withResolver: resolve, withRejecter: reject)

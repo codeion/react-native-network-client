@@ -21,7 +21,7 @@ extension APIClientError: LocalizedError {
         case .ClientCertificateMissing: return -200
         }
     }
-    
+
     var errorDescription: String? {
         switch self {
         case .ClientCertificateMissing:
@@ -68,7 +68,7 @@ class APIClient: RCTEventEmitter, NetworkClient {
     var emitter: RCTEventEmitter!
     var hasListeners: Bool = false
     let requestsTable = NSMapTable<NSString, Request>.strongToWeakObjects()
-    
+
     override init() {
         super.init()
         NotificationCenter.default.addObserver(self,
@@ -76,7 +76,7 @@ class APIClient: RCTEventEmitter, NetworkClient {
                                                name: Notification.Name(API_CLIENT_EVENTS["CLIENT_ERROR"]!),
                                                object: nil)
     }
-    
+
     deinit {
         NotificationCenter.default.removeObserver(self,
                                                   name: Notification.Name(API_CLIENT_EVENTS["CLIENT_ERROR"]!),
@@ -86,7 +86,7 @@ class APIClient: RCTEventEmitter, NetworkClient {
     override static func requiresMainQueueSetup() -> Bool {
         return true
     }
-    
+
     override func constantsToExport() -> [AnyHashable : Any]! {
         return ["EVENTS": API_CLIENT_EVENTS, "RETRY_TYPES": RETRY_TYPES]
     }
@@ -94,15 +94,15 @@ class APIClient: RCTEventEmitter, NetworkClient {
     open override func supportedEvents() -> [String] {
         return Array(API_CLIENT_EVENTS.values)
     }
-    
+
     override func startObserving() -> Void {
         hasListeners = true;
     }
-    
+
     override func stopObserving() -> Void {
         hasListeners = false;
     }
-    
+
     @objc(createClientFor:withOptions:withResolver:withRejecter:)
     func createClientFor(baseUrlString: String, options: Dictionary<String, Any> = [:], resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) -> Void {
         guard let baseUrl = URL(string: baseUrlString) else {
@@ -143,7 +143,7 @@ class APIClient: RCTEventEmitter, NetworkClient {
 
             return
         }
-        
+
 
         resolve(SessionManager.default.createSession(for: baseUrl, withRootQueue: rootQueue, withDelegate: sessionDelegate!))
     }
@@ -188,14 +188,14 @@ class APIClient: RCTEventEmitter, NetworkClient {
         let headers = JSON(SessionManager.default.getSessionHeaders(for: baseUrl)).dictionaryObject
         resolve(headers)
     }
-    
+
     @objc(importClientP12For:withPath:withPassword:withResolver:withRejecter:)
     func importClientP12For(baseUrlString: String, path: String, password: String, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) -> Void {
         guard let baseUrl = URL(string: baseUrlString) else {
             rejectMalformed(url: baseUrlString, withRejecter: reject)
             return
         }
-    
+
         guard let session = SessionManager.default.getSession(for: baseUrl) else {
             rejectInvalidSession(for: baseUrl, withRejecter: reject)
             return
@@ -212,9 +212,14 @@ class APIClient: RCTEventEmitter, NetworkClient {
     func head(baseUrl: String, endpoint: String, options: Dictionary<String, Any>, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) -> Void {
         handleRequest(for: baseUrl, withEndpoint: endpoint, withMethod: .head, withOptions: JSON(options), withResolver: resolve, withRejecter: reject)
     }
-    
+
     @objc(get:forEndpoint:withOptions:withResolver:withRejecter:)
     func get(baseUrl: String, endpoint: String, options: Dictionary<String, Any>, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) -> Void {
+        handleRequest(for: baseUrl, withEndpoint: endpoint, withMethod: .get, withOptions: JSON(options), withResolver: resolve, withRejecter: reject)
+    }
+
+    @objc(poll:forEndpoint:withOptions:withResolver:withRejecter:)
+    func poll(baseUrl: String, endpoint: String, options: Dictionary<String, Any>, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) -> Void {
         handleRequest(for: baseUrl, withEndpoint: endpoint, withMethod: .get, withOptions: JSON(options), withResolver: resolve, withRejecter: reject)
     }
 
@@ -222,7 +227,7 @@ class APIClient: RCTEventEmitter, NetworkClient {
     func put(baseUrl: String, endpoint: String, options: Dictionary<String, Any>, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) -> Void {
         handleRequest(for: baseUrl, withEndpoint: endpoint, withMethod: .put, withOptions: JSON(options), withResolver: resolve, withRejecter: reject)
     }
-    
+
     @objc(post:forEndpoint:withOptions:withResolver:withRejecter:)
     func post(baseUrl: String, endpoint: String, options: Dictionary<String, Any>, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) -> Void {
         handleRequest(for: baseUrl, withEndpoint: endpoint, withMethod: .post, withOptions: JSON(options), withResolver: resolve, withRejecter: reject)
@@ -263,14 +268,14 @@ class APIClient: RCTEventEmitter, NetworkClient {
 
         upload(fileUrl, to: url, forSession: session, withTaskId: taskId, withOptions: JSON(options), withResolver: resolve, withRejecter: reject)
     }
-    
+
     @objc(download:forEndpoint:withFilePath:withTaskId:withOptions:withResolver:withRejecter:)
     func upload(baseUrlString: String, endpoint: String, filePath: String, taskId: String, options: Dictionary<String, Any>, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) -> Void {
         guard let baseUrl = URL(string: baseUrlString) else {
             rejectMalformed(url: baseUrlString, withRejecter: reject)
             return
         }
-        
+
         let destinationUrl = NSURL.fileURL(withPath: filePath)
         do {
             let parentDir = destinationUrl.deletingLastPathComponent()
@@ -296,27 +301,27 @@ class APIClient: RCTEventEmitter, NetworkClient {
 
         download(url, to: destinationUrl, forSession: session, withTaskId: taskId, withOptions: JSON(options), withResolver: resolve, withRejecter: reject)
     }
-    
+
     func upload(_ fileUrl: URL, to url: URL, forSession session: Session, withTaskId taskId: String, withOptions options: JSON, withResolver resolve: @escaping RCTPromiseResolveBlock, withRejecter reject: @escaping RCTPromiseRejectBlock) -> Void {
         guard let fileSize = try? Double(fileUrl.fileSize()) else {
             rejectFileSize(for: fileUrl, withRejecter: reject)
             return
         }
-        
+
         if let _ = options["multipart"].dictionary {
             self.multipartUpload(fileUrl, to: url, forSession: session, withFileSize: fileSize, withTaskId: taskId, withOptions: options, withResolver: resolve, withRejecter: reject)
         } else {
             self.streamUpload(fileUrl, to: url, forSession: session, withFileSize: fileSize, withTaskId: taskId, withOptions: options, withResolver: resolve, withRejecter: reject)
         }
     }
-    
+
     func download(_ url: URL, to destinationUrl: URL, forSession session: Session, withTaskId taskId: String, withOptions options: JSON, withResolver resolve: @escaping RCTPromiseResolveBlock, withRejecter reject: @escaping RCTPromiseRejectBlock) -> Void {
         let headers = getHTTPHeaders(from: options)
         let requestModifer = getRequestModifier(from: options)
         let destination: DownloadRequest.Destination = { _, _ in
             return (destinationUrl, [.removePreviousFile])
         }
-        
+
         let request = session.download(url, method: .get, parameters: nil, encoding: URLEncoding.default, headers: headers, interceptor: nil, requestModifier: requestModifer, to: destination)
 
         request.downloadProgress { progress in
@@ -335,7 +340,7 @@ class APIClient: RCTEventEmitter, NetworkClient {
 
         self.requestsTable.setObject(request, forKey: taskId as NSString)
     }
-    
+
     func multipartUpload(
                          _ fileUrl: URL,
                          to url: URL,
@@ -376,7 +381,7 @@ class APIClient: RCTEventEmitter, NetworkClient {
             headers: headers,
             requestModifier: requestModifer
         )
-        
+
         request
         .uploadProgress { progress in
             if self.hasListeners {
@@ -389,11 +394,11 @@ class APIClient: RCTEventEmitter, NetworkClient {
 
         self.requestsTable.setObject(request, forKey: taskId as NSString)
     }
-    
+
     func streamUpload(_ fileUrl: URL, to url: URL, forSession session: Session, withFileSize fileSize: Double, withTaskId taskId: String, withOptions options: JSON, withResolver resolve: @escaping RCTPromiseResolveBlock, withRejecter reject: @escaping RCTPromiseRejectBlock) -> Void {
         let headers = getHTTPHeaders(from: options)
         let requestModifer = getRequestModifier(from: options)
-        
+
         var method: HTTPMethod
         switch options["method"].string?.uppercased() {
             case "PATCH":
@@ -403,7 +408,7 @@ class APIClient: RCTEventEmitter, NetworkClient {
             default:
                 method = .post
         }
-        
+
         var initialFractionCompleted: Double = 0;
         let stream = InputStream(url: fileUrl)!
         if let skipBytes = options["skipBytes"].uInt64 {
@@ -424,20 +429,20 @@ class APIClient: RCTEventEmitter, NetworkClient {
 
         self.requestsTable.setObject(request, forKey: taskId as NSString)
     }
-    
+
     @objc(cancelRequest:withResolver:withRejecter:)
     func cancelRequest(_ taskId: String, withResolver resolve: @escaping RCTPromiseResolveBlock, withRejecter reject: @escaping RCTPromiseRejectBlock) -> Void {
         if let request = self.requestsTable.object(forKey: taskId as NSString) {
             request.cancel()
         }
     }
-    
+
     func handleRequest(for baseUrlString: String, withEndpoint endpoint: String, withMethod method: HTTPMethod, withOptions options: JSON, withResolver resolve: @escaping RCTPromiseResolveBlock, withRejecter reject: @escaping RCTPromiseRejectBlock) -> Void {
         guard let baseUrl = URL(string: baseUrlString) else {
             rejectMalformed(url: baseUrlString, withRejecter: reject)
             return
         }
-    
+
         guard let session = SessionManager.default.getSession(for: baseUrl) else {
             rejectInvalidSession(for: baseUrl, withRejecter: reject)
             return
@@ -473,14 +478,14 @@ class APIClient: RCTEventEmitter, NetworkClient {
             }
         }
     }
-    
+
     func getURLSessionConfiguration(from options: JSON) -> URLSessionConfiguration {
         let config = URLSessionConfiguration.default
-        
+
         if let headers = options["headers"].dictionaryObject {
             config.httpAdditionalHeaders = headers
         }
-        
+
         let sessionOptions = options["sessionConfiguration"]
         if sessionOptions["allowsCellularAccess"].exists() {
             config.allowsCellularAccess = sessionOptions["allowsCellularAccess"].boolValue
@@ -497,7 +502,7 @@ class APIClient: RCTEventEmitter, NetworkClient {
         if sessionOptions["httpMaximumConnectionsPerHost"].exists() {
             config.httpMaximumConnectionsPerHost = sessionOptions["httpMaximumConnectionsPerHost"].intValue
         }
-        
+
         if #available(iOS 11.0, *) {
             if sessionOptions["waitsForConnectivity"].exists() {
                 config.waitsForConnectivity = sessionOptions["waitsForConnectivity"].boolValue
@@ -506,14 +511,14 @@ class APIClient: RCTEventEmitter, NetworkClient {
 
         return config
     }
-    
+
     func rejectInvalidSession(for baseUrl: URL, withRejecter reject: @escaping RCTPromiseRejectBlock) -> Void {
         let message = "Session for \(baseUrl.absoluteString) has been invalidated"
         let error = NSError(domain: NSCocoaErrorDomain, code: NSCoderValueNotFoundError, userInfo: [NSLocalizedDescriptionKey: message])
 
         reject("\(error.code)", message, error)
     }
-    
+
     func rejectFileSize(for fileUrl: URL, withRejecter reject: @escaping RCTPromiseRejectBlock) -> Void {
         let message = "Unable to read file size for \(fileUrl.absoluteString)"
         let error = NSError(domain: NSCocoaErrorDomain,
@@ -522,14 +527,14 @@ class APIClient: RCTEventEmitter, NetworkClient {
 
         reject("\(error.code)", message, error)
     }
-    
+
     @objc(errorHandler:)
     func errorHandler(notification: Notification) {
         self.sendErrorEvent(for: notification.userInfo!["serverUrl"] as! String,
                               withErrorCode: notification.userInfo!["errorCode"] as! Int,
                               withErrorDescription: notification.userInfo!["errorDescription"] as! String)
     }
-    
+
     func sendErrorEvent(for serverUrl: String, withErrorCode errorCode: Int, withErrorDescription errorDescription: String) {
         if hasListeners {
             self.sendEvent(withName: API_CLIENT_EVENTS["CLIENT_ERROR"],

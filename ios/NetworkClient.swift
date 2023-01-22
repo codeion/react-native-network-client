@@ -19,31 +19,31 @@ protocol NetworkClient {
                        withOptions options: JSON,
                        withResolver resolve: @escaping RCTPromiseResolveBlock,
                        withRejecter reject: @escaping RCTPromiseRejectBlock) -> Void
-    
+
     func handleRequest(for url: URL,
                        withMethod method: HTTPMethod,
                        withSession session: Session,
                        withOptions options: JSON,
                        withResolver resolve: @escaping RCTPromiseResolveBlock,
                        withRejecter reject: @escaping RCTPromiseRejectBlock) -> Void
-    
+
     func handleResponse(for session: Session,
                         withUrl url: URL,
                         withData data: AFDataResponse<Any>) -> Void
-    
+
     func resolveOrRejectDownloadResponse(_ response: AFDownloadResponse<URL>,
                                          for request: Request?,
                                          withResolver resolve: @escaping RCTPromiseResolveBlock,
                                          withRejecter reject: @escaping RCTPromiseRejectBlock)
-    
+
     func resolveOrRejectJSONResponse(_ json: AFDataResponse<Any>,
                                      for request: Request?,
                                      withResolver resolve: @escaping RCTPromiseResolveBlock,
                                      withRejecter reject: @escaping RCTPromiseRejectBlock)
-    
+
     func rejectMalformed(url: String,
                          withRejecter reject: @escaping RCTPromiseRejectBlock) -> Void
-    
+
     func getSessionInterceptor(from options: JSON) -> Interceptor?
 
     func getRetryPolicy(from options: JSON, forRequest request: URLRequest?) -> RetryPolicy?
@@ -51,7 +51,7 @@ protocol NetworkClient {
     func getHTTPHeaders(from options: JSON) -> HTTPHeaders?
 
     func getRequestModifier(from options: JSON) -> Session.RequestModifier?
-    
+
     func getRedirectUrls(for request: Request) -> [String]?
 }
 
@@ -64,7 +64,7 @@ extension NetworkClient {
 
         handleRequest(for: url, withMethod: method, withSession: session, withOptions: options, withResolver: resolve, withRejecter: reject)
     }
-    
+
     func handleRequest(for url: URL, withMethod method: HTTPMethod, withSession session: Session, withOptions options: JSON, withResolver resolve: @escaping RCTPromiseResolveBlock, withRejecter reject: @escaping RCTPromiseRejectBlock) -> Void {
         let parameters = options["body"] == JSON.null ? nil : options["body"]
         let encoder: ParameterEncoder = parameters != nil ? JSONParameterEncoder.default : URLEncodedFormParameterEncoder.default
@@ -72,29 +72,34 @@ extension NetworkClient {
         let requestModifer = getRequestModifier(from: options)
 
         let request = session.request(url, method: method, parameters: parameters, encoder: encoder, headers: headers, requestModifier: requestModifer)
-            
+
         request.validate(statusCode: 200...409)
             .responseJSON { json in
                 self.handleResponse(for: session, withUrl: url, withData: json)
-                self.resolveOrRejectJSONResponse(json, for: request, withResolver: resolve, withRejecter: reject)
+                if url.absoluteString.contains("poll") {
+                    // TODO resolve
+                    self.handleRequest(for: url, withMethod: method, withSession: session, withOptions: options, withResolver: resolve, withRejecter: reject)
+                } else {
+                    self.resolveOrRejectJSONResponse(json, for: request, withResolver: resolve, withRejecter: reject)
+                }
         }
     }
-    
+
     func handleResponse(for session: Session, withUrl url: URL, withData data: AFDataResponse<Any>) -> Void {}
-    
+
     func resolveOrRejectDownloadResponse(_ data: AFDownloadResponse<URL>,
                                          for request: Request? = nil,
                                          withResolver resolve: @escaping RCTPromiseResolveBlock,
                                          withRejecter reject: @escaping RCTPromiseRejectBlock) -> Void {
         data.request?.removeRetryPolicy()
-        
+
         switch (data.result) {
         case .success:
             var ok = false
             if let statusCode = data.response?.statusCode {
                 ok = (200 ... 299).contains(statusCode)
             }
-            
+
             var response: [String: Any] = [
                 "ok": ok,
                 "headers": data.response?.allHeaderFields as Any,
@@ -104,7 +109,7 @@ extension NetworkClient {
             if let redirectUrls = getRedirectUrls(for: request!) {
                 response["redirectUrls"] = redirectUrls
             }
-            
+
             resolve(response)
         case .failure(let error):
             var responseCode = error.responseCode
@@ -113,7 +118,7 @@ extension NetworkClient {
                 responseCode = underlyingError.asAFError?.responseCode
                 retriesExhausted = true
             }
-            
+
             var response: [String: Any] = [
                 "ok": false,
                 "headers": data.response?.allHeaderFields as Any,
@@ -123,7 +128,7 @@ extension NetworkClient {
             if let redirectUrls = getRedirectUrls(for: request!) {
                 response["redirectUrls"] = redirectUrls
             }
-            
+
             if responseCode != nil {
                 resolve(response)
                 return
@@ -132,14 +137,14 @@ extension NetworkClient {
             reject("\(error._code)", error.localizedDescription, error)
         }
     }
-    
+
     func resolveOrRejectJSONResponse(_ json: AFDataResponse<Any>,
                                      for request: Request? = nil,
                                      withResolver resolve: @escaping RCTPromiseResolveBlock,
                                      withRejecter reject: @escaping RCTPromiseRejectBlock) -> Void {
 
         json.request?.removeRetryPolicy()
-        
+
         switch (json.result) {
         case .success:
             var ok = false
@@ -156,7 +161,7 @@ extension NetworkClient {
             if let redirectUrls = getRedirectUrls(for: request!) {
                 response["redirectUrls"] = redirectUrls
             }
-            
+
             resolve(response)
         case .failure(let error):
             var responseCode = error.responseCode
@@ -165,7 +170,7 @@ extension NetworkClient {
                 responseCode = underlyingError.asAFError?.responseCode
                 retriesExhausted = true
             }
-            
+
             var response = [
                 "ok": false,
                 "headers": json.response?.allHeaderFields,
@@ -176,7 +181,7 @@ extension NetworkClient {
             if let redirectUrls = getRedirectUrls(for: request!) {
                 response["redirectUrls"] = redirectUrls
             }
-            
+
             if responseCode != nil {
                 resolve(response)
                 return
@@ -185,7 +190,7 @@ extension NetworkClient {
             reject("\(error._code)", error.localizedDescription, error)
         }
     }
-    
+
     func rejectMalformed(url: String, withRejecter reject: @escaping RCTPromiseRejectBlock) -> Void {
         let message = "Malformed URL: \(url)"
         let error = NSError(domain: NSURLErrorDomain, code: NSURLErrorBadURL, userInfo: [NSLocalizedDescriptionKey: message])
@@ -203,10 +208,10 @@ extension NetworkClient {
         if (adapters.isEmpty) {
             return Interceptor(retriers: retriers)
         }
-    
+
         return Interceptor(adapters: adapters, retriers: retriers)
     }
-    
+
     func getRetryPolicy(from options: JSON, forRequest request: URLRequest? = nil) -> RetryPolicy? {
         let configuration = options["retryPolicyConfiguration"]
         if configuration != JSON.null {
@@ -218,14 +223,14 @@ extension NetworkClient {
                     return HTTPMethod(rawValue: method.stringValue.uppercased())
                 })
             }
-        
+
             var retryableHTTPStatusCodes = RetryPolicy.defaultRetryableHTTPStatusCodes
             if let statusCodesArray = configuration["statusCodes"].array {
                 retryableHTTPStatusCodes = Set(statusCodesArray.map { (statusCode) -> Int in
                     return Int(statusCode.intValue)
                 })
             }
-        
+
             if configuration["type"].string == RETRY_TYPES["LINEAR_RETRY"] {
                 let retryLimit = configuration["retryLimit"].uInt ?? LinearRetryPolicy.defaultRetryLimit
                 let retryInterval = configuration["retryInterval"].uInt ?? LinearRetryPolicy.defaultRetryInterval
@@ -258,10 +263,10 @@ extension NetworkClient {
             }
             return httpHeaders
         }
-        
+
         return nil
     }
-    
+
     func getRequestModifier(from options: JSON) -> Session.RequestModifier? {
         return {
             $0.retryPolicy = getRetryPolicy(from: options, forRequest: $0)
@@ -271,10 +276,10 @@ extension NetworkClient {
             }
         }
     }
-    
+
     func getRedirectUrls(for request: Request) -> [String]? {
         var redirectUrls: [String] = []
-        
+
         request.allMetrics.forEach { metric in
             metric.transactionMetrics.forEach { transactionMetric in
                 let url = transactionMetric.request.url!.absoluteString
@@ -283,7 +288,7 @@ extension NetworkClient {
                 }
             }
         }
-        
+
         return redirectUrls.count > 1 ? redirectUrls : nil
     }
 }
