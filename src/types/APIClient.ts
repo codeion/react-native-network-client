@@ -54,6 +54,7 @@ export type ClientResponseError = {
 };
 
 export type APIClientErrorEventHandler = (event: APIClientErrorEvent) => void;
+export type APIClientPollEventHandler = (event: APIClientPollEvent) => void;
 
 export interface GenericClientInterface {
     head(url: string, options?: RequestOptions): Promise<ClientResponse>;
@@ -71,6 +72,8 @@ export interface APIClientInterface {
 
     onClientErrorSubscription?: EmitterSubscription;
     onClientError(callback: APIClientErrorEventHandler): void;
+    onClientPollSubscription?: EmitterSubscription;
+    onClientPoll(callback: APIClientPollEventHandler): void;
 
     head(endpoint: string, options?: RequestOptions): Promise<ClientResponse>;
     get(endpoint: string, options?: RequestOptions): Promise<ClientResponse>;
@@ -147,4 +150,8 @@ export type APIClientErrorEvent = {
     serverUrl: string;
     errorCode: number;
     errorDescription: string;
+};
+
+export type APIClientPollEvent = {
+    data: string;
 };

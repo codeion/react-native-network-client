@@ -18,6 +18,8 @@ import type {
     APIClientConfiguration,
     APIClientErrorEvent,
     APIClientErrorEventHandler,
+    APIClientPollEvent,
+    APIClientPollEventHandler,
     APIClientInterface,
     ClientHeaders,
     ClientResponse,
@@ -55,6 +57,7 @@ class APIClient implements APIClientInterface {
     baseUrl: string;
     config: APIClientConfiguration;
     onClientErrorSubscription?: EmitterSubscription;
+    onClientPollSubscription?: EmitterSubscription;
 
     constructor(baseUrl: string, config: APIClientConfiguration = {}) {
         this.baseUrl = removeTrailingSlashes(baseUrl);
@@ -71,6 +74,21 @@ class APIClient implements APIClientInterface {
             EVENTS.CLIENT_ERROR,
             (event: APIClientErrorEvent) => {
                 if (event.serverUrl === this.baseUrl && callback) {
+                    callback(event);
+                }
+            }
+        );
+    };
+
+    onClientPoll = (callback: APIClientPollEventHandler) => {
+        if (this.onClientPollSubscription) {
+            this.onClientPollSubscription.remove();
+        }
+
+        this.onClientPollSubscription = Emitter.addListener(
+            EVENTS.POLLING,
+            (event: APIClientPollEvent) => {
+                if (callback) {
                     callback(event);
                 }
             }
