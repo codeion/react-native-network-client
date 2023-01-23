@@ -33,7 +33,8 @@ extension APIClientError: LocalizedError {
 let API_CLIENT_EVENTS = [
     "UPLOAD_PROGRESS": "APIClient-UploadProgress",
     "DOWNLOAD_PROGRESS": "APIClient-DownloadProgress",
-    "CLIENT_ERROR": "APIClient-Error"
+    "CLIENT_ERROR": "APIClient-Error",
+    "POLLING": "APIClient-Polling"
 ]
 
 class APIClientSessionDelegate: SessionDelegate {
@@ -220,7 +221,7 @@ class APIClient: RCTEventEmitter, NetworkClient {
 
     @objc(poll:forEndpoint:withOptions:withResolver:withRejecter:)
     func poll(baseUrl: String, endpoint: String, options: Dictionary<String, Any>, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) -> Void {
-        handleRequest(for: baseUrl, withEndpoint: endpoint, withMethod: .get, withOptions: JSON(options), withResolver: resolve, withRejecter: reject)
+        handlePoll(for: baseUrl, withEndpoint: endpoint, withMethod: .get, withOptions: JSON(options), withResolver: resolve, withRejecter: reject, withSendEvt: sendPollEvent(data:))
     }
 
     @objc(put:forEndpoint:withOptions:withResolver:withRejecter:)
@@ -457,6 +458,26 @@ class APIClient: RCTEventEmitter, NetworkClient {
         handleRequest(for: url, withMethod: method, withSession: session, withOptions: options, withResolver: resolve, withRejecter: reject)
     }
 
+    func handlePoll(for baseUrlString: String, withEndpoint endpoint: String, withMethod method: HTTPMethod, withOptions options: JSON, withResolver resolve: @escaping RCTPromiseResolveBlock, withRejecter reject: @escaping RCTPromiseRejectBlock, withSendEvt sendEvt: @escaping (Any?) -> Void) -> Void {
+        guard let baseUrl = URL(string: baseUrlString) else {
+            rejectMalformed(url: baseUrlString, withRejecter: reject)
+            return
+        }
+
+        guard let session = SessionManager.default.getSession(for: baseUrl) else {
+            rejectInvalidSession(for: baseUrl, withRejecter: reject)
+            return
+        }
+
+        let urlString = "\(baseUrl.absoluteString)\(endpoint)"
+        guard let url = URL(string: urlString) else {
+            rejectMalformed(url: urlString, withRejecter: reject)
+            return
+        }
+
+        handlePoll(for: url, withMethod: method, withSession: session, withOptions: options, withResolver: resolve, withRejecter: reject, withSendEvt: sendPollEvent(data:))
+    }
+
     func handleResponse(for session: Session, withUrl url: URL, withData data: AFDataResponse<Any>) -> Void {
         if data.response?.statusCode == 401 && session.cancelRequestsOnUnauthorized {
             session.cancelAllRequests()
@@ -539,6 +560,12 @@ class APIClient: RCTEventEmitter, NetworkClient {
         if hasListeners {
             self.sendEvent(withName: API_CLIENT_EVENTS["CLIENT_ERROR"],
                            body: ["serverUrl": serverUrl, "errorCode": errorCode, "errorDescription": errorDescription])
+        }
+    }
+
+    func sendPollEvent(data: Any) {
+        if hasListeners {
+            self.sendEvent(withName: API_CLIENT_EVENTS["POLLING"], body: ["data": data])
         }
     }
 }

@@ -13,12 +13,13 @@ Pod::Spec.new do |s|
   s.platforms    = { :ios => "12.4" }
   s.source       = { :git => "https://github.com/mattermost/react-native-network-client.git", :tag => "#{s.version}" }
 
-  
+
   s.source_files = "ios/**/*.{h,m,mm,swift}"
-  
+
 
   s.dependency "React-Core"
   s.dependency "Alamofire", "~> 5.6.4"
   s.dependency "SwiftyJSON", "~> 5.0"
   s.dependency "Starscream", "~> 4.0.4"
+#   s.dependency "MMKV", "~> 1.2.13"
 end

@@ -11,6 +11,7 @@ import Alamofire
 import SwiftyJSON
 
 let RETRY_TYPES = ["EXPONENTIAL_RETRY": "exponential", "LINEAR_RETRY": "linear"]
+// let mmkv = MMKV(mmapID: "mmkv.default", mode: MMKVMode.singleProcess)
 
 protocol NetworkClient {
     func handleRequest(for url: String,
@@ -26,6 +27,22 @@ protocol NetworkClient {
                        withOptions options: JSON,
                        withResolver resolve: @escaping RCTPromiseResolveBlock,
                        withRejecter reject: @escaping RCTPromiseRejectBlock) -> Void
+
+    func handlePoll(for url: String,
+                       withMethod method: HTTPMethod,
+                       withSession session: Session,
+                       withOptions options: JSON,
+                       withResolver resolve: @escaping RCTPromiseResolveBlock,
+                       withRejecter reject: @escaping RCTPromiseRejectBlock,
+                       withSendEvt sendEvt: @escaping (Any?) -> Void) -> Void
+
+    func handlePoll(for url: URL,
+                       withMethod method: HTTPMethod,
+                       withSession session: Session,
+                       withOptions options: JSON,
+                       withResolver resolve: @escaping RCTPromiseResolveBlock,
+                       withRejecter reject: @escaping RCTPromiseRejectBlock,
+                       withSendEvt sendEvt: @escaping (Any?) -> Void) -> Void
 
     func handleResponse(for session: Session,
                         withUrl url: URL,
@@ -76,12 +93,33 @@ extension NetworkClient {
         request.validate(statusCode: 200...409)
             .responseJSON { json in
                 self.handleResponse(for: session, withUrl: url, withData: json)
-                if url.absoluteString.contains("poll") {
-                    // TODO resolve
-                    self.handleRequest(for: url, withMethod: method, withSession: session, withOptions: options, withResolver: resolve, withRejecter: reject)
-                } else {
-                    self.resolveOrRejectJSONResponse(json, for: request, withResolver: resolve, withRejecter: reject)
-                }
+                self.resolveOrRejectJSONResponse(json, for: request, withResolver: resolve, withRejecter: reject)
+        }
+    }
+
+    func handlePoll(for urlString: String, withMethod method: HTTPMethod, withSession session: Session, withOptions options: JSON, withResolver resolve: @escaping RCTPromiseResolveBlock, withRejecter reject: @escaping RCTPromiseRejectBlock, withSendEvt sendEvt: @escaping (Any?) -> Void) -> Void {
+        guard let url = URL(string: urlString) else {
+            rejectMalformed(url: urlString, withRejecter: reject)
+            return
+        }
+
+        handlePoll(for: url, withMethod: method, withSession: session, withOptions: options, withResolver: resolve, withRejecter: reject, withSendEvt: sendEvt)
+    }
+
+    func handlePoll(for url: URL, withMethod method: HTTPMethod, withSession session: Session, withOptions options: JSON, withResolver resolve: @escaping RCTPromiseResolveBlock, withRejecter reject: @escaping RCTPromiseRejectBlock, withSendEvt sendEvt: @escaping (Any?) -> Void) -> Void {
+        let parameters = options["body"] == JSON.null ? nil : options["body"]
+        let encoder: ParameterEncoder = parameters != nil ? JSONParameterEncoder.default : URLEncodedFormParameterEncoder.default
+        let headers = getHTTPHeaders(from: options)
+        let requestModifer = getRequestModifier(from: options)
+
+        let request = session.request(url, method: method, parameters: parameters, encoder: encoder, headers: headers, requestModifier: requestModifer)
+
+        request.validate(statusCode: 200...409)
+            .responseJSON { json in
+                self.handleResponse(for: session, withUrl: url, withData: json)
+//                 mmkv?.set(json.description, forKey: "poll")
+                sendEvt(json.value);
+                self.handlePoll(for: url, withMethod: method, withSession: session, withOptions: options, withResolver: resolve, withRejecter: reject, withSendEvt: sendEvt)
         }
     }
 
