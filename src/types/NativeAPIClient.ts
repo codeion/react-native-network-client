@@ -93,4 +93,5 @@ export interface NativeAPIClient extends NativeModule {
         password?: string
     ): Promise<void>;
     invalidateClientFor(baseUrl: string): Promise<void>;
+    abort(baseUrl: string,): Promise<void>;
 }

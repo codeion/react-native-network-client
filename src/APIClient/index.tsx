@@ -256,6 +256,9 @@ class APIClient implements APIClientInterface {
 
         return promise;
     };
+    abort = (baseUrl: string): Promise<void> => {
+        return NativeAPIClient.abort(baseUrl);
+    };
 }
 
 async function getOrCreateAPIClient(

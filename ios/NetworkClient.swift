@@ -117,9 +117,11 @@ extension NetworkClient {
         request.validate(statusCode: 200...409)
             .responseJSON { json in
                 self.handleResponse(for: session, withUrl: url, withData: json)
-//                 mmkv?.set(json.description, forKey: "poll")
-                sendEvt(json.value);
-                self.handlePoll(for: url, withMethod: method, withSession: session, withOptions: options, withResolver: resolve, withRejecter: reject, withSendEvt: sendEvt)
+                if (json.response?.statusCode == 200) {
+                    // mmkv?.set(json.description, forKey: "poll")
+                    sendEvt(json.value);
+                    self.handlePoll(for: url, withMethod: method, withSession: session, withOptions: options, withResolver: resolve, withRejecter: reject, withSendEvt: sendEvt)
+                }
         }
     }
 

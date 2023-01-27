@@ -97,6 +97,7 @@ export interface APIClientInterface {
     addHeaders(headers: ClientHeaders): Promise<void>;
     importClientP12(path: string, password?: string): Promise<void>;
     invalidate(): Promise<void>;
+    abort(baseUrl: string): Promise<void>;
 }
 
 export type ClientP12Configuration = {
