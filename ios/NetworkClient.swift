@@ -117,10 +117,24 @@ extension NetworkClient {
         request.validate(statusCode: 200...409)
             .responseJSON { json in
                 self.handleResponse(for: session, withUrl: url, withData: json)
-                if (json.response?.statusCode == 200) {
-                    // mmkv?.set(json.description, forKey: "poll")
-                    sendEvt(json.value);
-                    self.handlePoll(for: url, withMethod: method, withSession: session, withOptions: options, withResolver: resolve, withRejecter: reject, withSendEvt: sendEvt)
+                switch (json.result) {
+                case .success:
+                    var ok = false
+                    if let statusCode = json.response?.statusCode {
+                        ok = (200 ... 299).contains(statusCode)
+                    }
+                    if (ok) {
+                        // mmkv?.set(json.description, forKey: "poll")
+                        sendEvt(json.value);
+                        self.handlePoll(for: url, withMethod: method, withSession: session, withOptions: options, withResolver: resolve, withRejecter: reject, withSendEvt: sendEvt)
+                    } else {
+                        sendEvt(["error": "Session id not valid"]);
+                    }
+                case .failure(let error):
+                    sendEvt([
+                        "failure": true,
+                        "message": error.localizedDescription,
+                    ]);
                 }
         }
     }
