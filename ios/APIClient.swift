@@ -438,18 +438,18 @@ class APIClient: RCTEventEmitter, NetworkClient {
         }
     }
 
-    @objc(abort:)
-    func abort(baseUrlString: String) -> Void {
+    @objc(abort:withResolver:withRejecter:)
+    func abort(baseUrlString: String, withResolver resolve: @escaping RCTPromiseResolveBlock, withRejecter reject: @escaping RCTPromiseRejectBlock) -> Void {
         guard let baseUrl = URL(string: baseUrlString) else {
-            // TODO
+            rejectMalformed(url: baseUrlString, withRejecter: reject)
             return
         }
         guard let session = SessionManager.default.getSession(for: baseUrl) else {
-            // TODO
+            rejectInvalidSession(for: baseUrl, withRejecter: reject)
             return
         }
         session.cancelAllRequests() {
-            // TODO
+            resolve("Abort")
         }
     }
 

@@ -44,6 +44,6 @@ RCT_EXTERN_METHOD(download:(NSString *)baseUrl forEndpoint:(NSString *)endpoint 
 
 RCT_EXTERN_METHOD(cancelRequest:(NSString *)taskId withResolver:(RCTPromiseResolveBlock)resolve withRejecter:(RCTPromiseRejectBlock)reject)
 
-RCT_EXTERN_METHOD(abort:(NSString *)baseUrl)
+RCT_EXTERN_METHOD(abort:(NSString *)baseUrl withResolver:(RCTPromiseResolveBlock)resolve withRejecter:(RCTPromiseRejectBlock)reject)
 
 @end
