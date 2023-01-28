@@ -222,6 +222,7 @@ class APIClient: RCTEventEmitter, NetworkClient {
     @objc(poll:forEndpoint:withOptions:withResolver:withRejecter:)
     func poll(baseUrl: String, endpoint: String, options: Dictionary<String, Any>, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) -> Void {
         handlePoll(for: baseUrl, withEndpoint: endpoint, withMethod: .get, withOptions: JSON(options), withResolver: resolve, withRejecter: reject, withSendEvt: sendPollEvent(data:))
+        resolve("Init")
     }
 
     @objc(put:forEndpoint:withOptions:withResolver:withRejecter:)

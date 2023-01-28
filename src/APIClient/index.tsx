@@ -257,6 +257,9 @@ class APIClient implements APIClientInterface {
         return promise;
     };
     abort = (baseUrl: string): Promise<void> => {
+        if (this.onClientPollSubscription) {
+            this.onClientPollSubscription.remove();
+        }
         return NativeAPIClient.abort(baseUrl);
     };
 }
