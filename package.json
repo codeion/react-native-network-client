@@ -30,7 +30,6 @@
     "test": "jest",
     "typescript": "tsc --noEmit",
     "lint": "eslint \"**/*.{js,ts,tsx}\"",
-    "prepare": "bob build && husky install",
     "release": "release-it",
     "example": "cd example && npm",
     "pods": "cd example && pod-install --quiet",
