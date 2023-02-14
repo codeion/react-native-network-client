@@ -184,6 +184,11 @@ class APIClientModule(reactContext: ReactApplicationContext) : ReactContextBaseJ
     }
 
     @ReactMethod
+    fun poll(baseUrl: String, endpoint: String, options: ReadableMap?, promise: Promise) {
+        requestPoll("GET", baseUrl, endpoint, options, promise)
+    }
+
+    @ReactMethod
     fun post(baseUrl: String, endpoint: String, options: ReadableMap?, promise: Promise) {
         request("POST", baseUrl, endpoint, options, promise)
     }
@@ -315,6 +320,24 @@ class APIClientModule(reactContext: ReactApplicationContext) : ReactContextBaseJ
     }
 
     @ReactMethod
+    fun abort(baseUrl: String, promise: Promise) {
+        var url: HttpUrl
+        try {
+            url = baseUrl.toHttpUrl()
+        } catch (error: IllegalArgumentException) {
+            return promise.reject(error)
+        }
+
+        val client = clients[url]!!
+        try {
+            client.cancelAllRequests()
+            promise.resolve("Abort")
+        } catch (error: Exception) {
+            promise.reject(error)
+        }
+    }
+
+    @ReactMethod
     fun addListener(eventName: String) {
         // Keep: Required for RN built in Event Emitter Calls
     }
@@ -347,7 +370,18 @@ class APIClientModule(reactContext: ReactApplicationContext) : ReactContextBaseJ
         try {
             val url = baseUrl.toHttpUrl()
             val client = clients[url]!!
-            client.request(method, endpoint, options, promise)
+            client.request(method, endpoint, options, promise, false)
+        } catch (error: Exception) {
+            return promise.reject(error)
+        }
+    }
+
+    private fun requestPoll(method: String, baseUrl: String, endpoint: String, options: ReadableMap?, promise: Promise) {
+        try {
+            val url = baseUrl.toHttpUrl()
+            val client = clients[url]!!
+            client.request(method, endpoint, options, promise, true)
+            promise.resolve("Init")
         } catch (error: Exception) {
             return promise.reject(error)
         }

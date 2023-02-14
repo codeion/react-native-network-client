@@ -89,7 +89,7 @@ internal class NetworkClient(private val baseUrl: HttpUrl? = null, options: Read
         }
     }
 
-    fun request(method: String, endpoint: String, options: ReadableMap?, promise: Promise) {
+    fun request(method: String, endpoint: String, options: ReadableMap?, promise: Promise, poll: Boolean) {
         var requestHeaders: ReadableMap? = null
         var requestBody: RequestBody? = null
 
@@ -141,11 +141,25 @@ internal class NetworkClient(private val baseUrl: HttpUrl? = null, options: Read
         val call = okHttpClient.newCall(request)
         call.enqueue(object : okhttp3.Callback {
             override fun onFailure(call: Call, e: IOException) {
-                promise.reject(e)
+                if (poll) {
+                    val map: WritableMap = Arguments.createMap()
+                    val res: WritableMap = Arguments.createMap()
+                    res.putBoolean("failure", true);
+                    res.putString("message", e.localizedMessage)
+                    map.putMap("data", res)
+                    APIClientModule.sendJSEvent(APIClientEvents.POLLING.event, map)
+                } else {
+                    promise.reject(e)
+                }
             }
 
             override fun onResponse(call: Call, response: Response) {
-                promise.resolve(response.toWritableMap())
+                if (poll) {
+                    APIClientModule.sendJSEvent(APIClientEvents.POLLING.event, response.toWritableMap())
+                    request(method, endpoint, options, promise, true)
+                } else {
+                    promise.resolve(response.toWritableMap())
+                }
                 cleanUpAfter(response)
             }
         })

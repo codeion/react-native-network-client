@@ -52,7 +52,7 @@ internal class GenericClientModule(reactContext: ReactApplicationContext) : Reac
 
     private fun request(method: String, url: String, options: ReadableMap?, promise: Promise) {
         try {
-            client.request(method, url, options, promise)
+            client.request(method, url, options, promise, false)
         } catch (error: Exception) {
             return promise.reject(error)
         }
