@@ -537,7 +537,7 @@ internal class NetworkClient(private val baseUrl: HttpUrl? = null, options: Read
         return null
     }
 
-    private fun cancelAllRequests() {
+    fun cancelAllRequests() {
         okHttpClient.dispatcher.cancelAll()
     }
 
